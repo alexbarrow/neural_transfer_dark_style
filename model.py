@@ -144,8 +144,8 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     """Run the style transfer."""
     print('Building the style transfer model..')
     new_cnn, style_losses, content_losses = get_style_model_and_losses(cnn, normalization_mean,
-                                                                     normalization_std, style_img, content_img,
-                                                                     style_layers, content_layers)
+                                                                       normalization_std, style_img, content_img,
+                                                                       style_layers, content_layers)
 
     optimizer = optim.LBFGS([input_img.requires_grad_()])
     print('Optimizing..')

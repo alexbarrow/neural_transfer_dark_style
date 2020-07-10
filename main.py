@@ -11,7 +11,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 content_img_path = 'data/input_img.jpg'
 style_img_path = 'data/style_img.jpg'
 
-height = 650 if torch.cuda.is_available() else 128
+height = 550 if torch.cuda.is_available() else 128
 width = 650 if torch.cuda.is_available() else 128
 
 # Load images
@@ -26,12 +26,14 @@ assert style_img.size() == content_img.size(), \
 
 # plt.figure()
 # imshow(style_img, title='Style Image')
-#
 # plt.figure()
 # imshow(content_img, title='Content Image')
 
-with open("models/vgg19_pretrained.pickle", "rb") as pickle_in:
-    cnn = pickle.load(pickle_in)
+try:
+    with open("models/vgg19_pretrained.pickle", "rb") as pickle_in:
+        cnn = pickle.load(pickle_in)
+except FileNotFoundError:
+    print('Cannot find the model. Please download vgg19 pretrained model.')
 
 cnn = cnn.features.to(device).eval()
 
@@ -51,5 +53,5 @@ output_img = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_s
 check_cuda()
 
 plt.figure()
-imshow(output_img, title='Output Image', save=True, name='res_newimg')
+imshow(output_img, title='Output Image', save=False, name='best_res')
 
