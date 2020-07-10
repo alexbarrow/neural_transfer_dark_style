@@ -23,10 +23,24 @@ def check_cuda():
         print('Cached:   ', round(torch.cuda.memory_cached(0)/1024**3, 1), 'GB')
 
 
+def show_logs(run, st_score, cont_score, tv_score, show_img=False, input_img=None, run_lim=50):
+    if run % run_lim == 0:
+        print("run {}:".format(run))
+        print('Style Loss : {:4f} Content Loss: {:4f} TV loss: {:4f}'.format(
+            st_score, cont_score, tv_score))
+        print()
+        if show_img:
+            plt.figure()
+            imshow(input_img, title='Output Image')
+            plt.ioff()
+            plt.show()
+            plt.pause(0.001)
+
+
 def gram_matrix(inputs):
     a, b, c, d = inputs.size()  # a=batch size(=1), b=number of feature maps,(c,d)=dimensions of a f. map (N=c*d)
     features = inputs.view(a * b, c * d)  # resise F_XL into \hat F_XL
-    gr_m = torch.mm(features, features.t())  # compute the gram product
+    gr_m = torch.mm(features-1, (features-1).t())  # compute the gram product
 
     # we 'normalize' the values of the gram matrix
     # by dividing by the number of element in each feature maps.
@@ -52,6 +66,13 @@ class StyleLoss(nn.Module):
         gr_mat = gram_matrix(inputs)
         self.loss = F.mse_loss(gr_mat, self.target)
         return inputs
+
+
+def reg_loss(inputs, reg_w):
+    w_variance = torch.sum(torch.pow(inputs[:, :, :, :-1] - inputs[:, :, :, 1:], 2))
+    h_variance = torch.sum(torch.pow(inputs[:, :, :-1, :] - inputs[:, :, 1:, :], 2))
+    loss = reg_w * (h_variance + w_variance)
+    return loss
 
 
 class Normalization(nn.Module):
@@ -119,7 +140,7 @@ def get_style_model_and_losses(cnn, normalization_mean, normalization_std,
 
 def run_style_transfer(cnn, normalization_mean, normalization_std,
                        content_img, style_img, input_img, style_layers, content_layers, num_steps=300,
-                       style_weight=1000000, content_weight=1, show_img=False):
+                       style_weight=1000000, content_weight=1, show_img=False, tv_reg=0.05):
     """Run the style transfer."""
     print('Building the style transfer model..')
     new_cnn, style_losses, content_losses = get_style_model_and_losses(cnn, normalization_mean,
@@ -147,22 +168,14 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
             style_score *= style_weight
             content_score *= content_weight
+            tv_score = reg_loss(input_img, tv_reg)
 
-            loss = style_score + content_score
+            loss = style_score + content_score + tv_score
             loss.backward()
 
             run[0] += 1
-            if run[0] % 50 == 0:
-                print("run {}:".format(run))
-                print('Style Loss : {:4f} Content Loss: {:4f}'.format(
-                    style_score.item(), content_score.item()))
-                print()
-                if show_img:
-                    plt.figure()
-                    imshow(input_img, title='Output Image')
-                    plt.ioff()
-                    plt.show()
-                    plt.pause(0.001)
+            show_logs(run[0], style_score.item(), content_score.item(), tv_score, show_img=show_img,
+                      input_img=input_img, run_lim=50)
 
             return style_score + content_score
 
@@ -171,4 +184,3 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     input_img.data.clamp_(0, 1)
 
     return input_img
-

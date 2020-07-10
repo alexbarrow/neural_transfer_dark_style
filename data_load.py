@@ -18,11 +18,13 @@ def image_loader(image_name, img_height, img_width):
     return image.to(device, torch.float)
 
 
-def imshow(tensor, title=None):
+def imshow(tensor, title=None, save=False, name='res'):
     unloader = transforms.ToPILImage()
     image = tensor.cpu().clone()
     image = image.squeeze(0)      # remove the fake batch dimension
     image = unloader(image)
+    if save:
+        image.save('outputs/'+name+'.jpg')
 
     plt.imshow(image)
     if title is not None:
@@ -35,11 +37,11 @@ def imshow(tensor, title=None):
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    content_img_path = 'data\input_img.jpg'
-    style_img_path = 'data\style_img.jpg'
+    content_img_path = 'data/input_img.jpg'
+    style_img_path = 'data/style_img.jpg'
 
-    height = 520 if torch.cuda.is_available() else 128
-    width = 740 if torch.cuda.is_available() else 128
+    height = 1000 if torch.cuda.is_available() else 128
+    width = 650 if torch.cuda.is_available() else 128
 
     style_img = image_loader(style_img_path, height, width)
     content_img = image_loader(content_img_path, height, width)
